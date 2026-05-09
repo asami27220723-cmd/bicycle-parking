@@ -218,6 +218,7 @@
       if (occupied > 0) navigator.setAppBadge(occupied);
       else navigator.clearAppBadge();
     }
+    updateNotificationBadge(occupied);
   }
 
   function renderGrid() {
@@ -290,8 +291,18 @@
 
   renderGrid();
 
+  let swReg = null;
+
+  async function updateNotificationBadge(count) {
+    if (!swReg || Notification.permission !== 'granted') return;
+    swReg.active && swReg.active.postMessage({ type: 'UPDATE_BADGE', count });
+  }
+
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js');
+    navigator.serviceWorker.register('sw.js').then(reg => {
+      swReg = reg;
+    });
+    Notification.requestPermission();
   }
 </script>
 </body>
