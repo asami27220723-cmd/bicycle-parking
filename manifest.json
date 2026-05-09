@@ -1,0 +1,16 @@
+{
+  "name": "自転車置場管理",
+  "short_name": "自転車置場",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#2e7d32",
+  "theme_color": "#2e7d32",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
