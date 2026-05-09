@@ -220,8 +220,8 @@
     }
     const nums = [];
     for (let i = 1; i <= state.max; i++) { if (state.slots[i]) nums.push(i); }
-    document.title = nums.length > 0 ? `🚲 [${nums.join(',')}]` : '🚲 自転車置場管理';
-    updateNotificationBadge(occupied);
+    document.title = nums.length > 0 ? `🚲 ${nums.join(',')}番 停車中` : '🚲 自転車置場管理';
+    updateNotificationBadge(nums);
   }
 
   function renderGrid() {
@@ -296,9 +296,9 @@
 
   let swReg = null;
 
-  async function updateNotificationBadge(count) {
+  async function updateNotificationBadge(nums) {
     if (!swReg || Notification.permission !== 'granted') return;
-    swReg.active && swReg.active.postMessage({ type: 'UPDATE_BADGE', count });
+    swReg.active && swReg.active.postMessage({ type: 'UPDATE_BADGE', nums });
   }
 
   if ('serviceWorker' in navigator) {
