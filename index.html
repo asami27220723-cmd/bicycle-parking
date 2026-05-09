@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>自転車置場管理</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+      background: #f5f5f5;
+      color: #333;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #2e7d32;
+      color: #fff;
+      padding: 16px 20px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      box-shadow: 0 2px 6px rgba(0,0,0,.25);
+    }
+
+    header h1 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      letter-spacing: .05em;
+    }
+
+    .summary {
+      font-size: .9rem;
+      margin-top: 4px;
+      opacity: .9;
+    }
+
+    .summary span {
+      font-weight: 700;
+      font-size: 1.1rem;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      padding: 14px 16px;
+      background: #fff;
+      border-bottom: 1px solid #ddd;
+    }
+
+    .controls label {
+      font-size: .85rem;
+      color: #555;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+
+    .controls input[type="number"] {
+      width: 64px;
+      padding: 6px 8px;
+      border: 1px solid #bbb;
+      border-radius: 6px;
+      font-size: .95rem;
+      text-align: center;
+    }
+
+    .controls button {
+      padding: 8px 18px;
+      border: none;
+      border-radius: 6px;
+      font-size: .85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .15s, transform .1s;
+    }
+
+    .btn-apply {
+      background: #1976d2;
+      color: #fff;
+    }
+
+    .btn-apply:hover { background: #1565c0; }
+
+    .btn-reset {
+      background: #e53935;
+      color: #fff;
+    }
+
+    .btn-reset:hover { background: #c62828; }
+
+    .controls button:active { transform: scale(.96); }
+
+    .grid-wrap {
+      padding: 16px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+      gap: 10px;
+    }
+
+    .slot {
+      min-height: 76px;
+      border-radius: 10px;
+      border: 2px solid transparent;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      cursor: pointer;
+      user-select: none;
+      transition: background .2s, border-color .2s, transform .12s, box-shadow .2s;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .slot:active { transform: scale(.92); }
+
+    .slot.empty {
+      background: #e0e0e0;
+      border-color: #bdbdbd;
+      color: #757575;
+    }
+
+    .slot.occupied {
+      background: #4caf50;
+      border-color: #388e3c;
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(76,175,80,.4);
+    }
+
+    .slot-num {
+      font-size: 1.4rem;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .slot-label {
+      font-size: .72rem;
+      font-weight: 600;
+      letter-spacing: .04em;
+    }
+
+    /* トグルアニメーション */
+    @keyframes pop {
+      0%   { transform: scale(1); }
+      40%  { transform: scale(.85); }
+      70%  { transform: scale(1.08); }
+      100% { transform: scale(1); }
+    }
+
+    .slot.pop { animation: pop .25s ease; }
+
+    footer {
+      text-align: center;
+      padding: 20px;
+      font-size: .75rem;
+      color: #aaa;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🚲 自転車置場管理</h1>
+  <div class="summary">使用中：<span id="countOccupied">0</span> 台 ／ 空き：<span id="countEmpty">0</span> 台</div>
+</header>
+
+<div class="controls">
+  <label>
+    番号の最大数：
+    <input type="number" id="maxInput" min="1" max="999" value="30">
+  </label>
+  <button class="btn-apply" id="btnApply">適用</button>
+  <button class="btn-reset" id="btnReset">全てなし（リセット）</button>
+</div>
+
+<div class="grid-wrap">
+  <div class="grid" id="grid"></div>
+</div>
+
+<footer>タップで「あり」⇔「なし」を切り替え</footer>
+
+<script>
+  const STORAGE_KEY = 'bicycle_parking_v1';
+
+  let state = load();
+
+  function load() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch {}
+    return { max: 30, slots: {} };
+  }
+
+  function save() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }
+
+  function updateSummary() {
+    let occupied = 0;
+    for (let i = 1; i <= state.max; i++) {
+      if (state.slots[i]) occupied++;
+    }
+    document.getElementById('countOccupied').textContent = occupied;
+    document.getElementById('countEmpty').textContent = state.max - occupied;
+  }
+
+  function renderGrid() {
+    const grid = document.getElementById('grid');
+    grid.innerHTML = '';
+
+    for (let i = 1; i <= state.max; i++) {
+      const btn = document.createElement('button');
+      btn.className = 'slot ' + (state.slots[i] ? 'occupied' : 'empty');
+      btn.setAttribute('aria-pressed', state.slots[i] ? 'true' : 'false');
+      btn.setAttribute('aria-label', `${i}番 ${state.slots[i] ? 'あり' : 'なし'}`);
+      btn.dataset.num = i;
+
+      const numEl = document.createElement('span');
+      numEl.className = 'slot-num';
+      numEl.textContent = i;
+
+      const labelEl = document.createElement('span');
+      labelEl.className = 'slot-label';
+      labelEl.textContent = state.slots[i] ? 'あり' : 'なし';
+
+      btn.appendChild(numEl);
+      btn.appendChild(labelEl);
+      btn.addEventListener('click', toggle);
+      grid.appendChild(btn);
+    }
+
+    updateSummary();
+  }
+
+  function toggle(e) {
+    const btn = e.currentTarget;
+    const num = Number(btn.dataset.num);
+    state.slots[num] = !state.slots[num];
+    save();
+
+    const isOccupied = state.slots[num];
+    btn.className = 'slot pop ' + (isOccupied ? 'occupied' : 'empty');
+    btn.setAttribute('aria-pressed', isOccupied ? 'true' : 'false');
+    btn.setAttribute('aria-label', `${num}番 ${isOccupied ? 'あり' : 'なし'}`);
+    btn.querySelector('.slot-label').textContent = isOccupied ? 'あり' : 'なし';
+
+    btn.addEventListener('animationend', () => {
+      btn.classList.remove('pop');
+    }, { once: true });
+
+    updateSummary();
+  }
+
+  document.getElementById('maxInput').value = state.max;
+
+  document.getElementById('btnApply').addEventListener('click', () => {
+    const val = parseInt(document.getElementById('maxInput').value, 10);
+    if (!val || val < 1 || val > 999) return;
+    state.max = val;
+    // 範囲外スロットを削除
+    Object.keys(state.slots).forEach(k => {
+      if (Number(k) > state.max) delete state.slots[k];
+    });
+    save();
+    renderGrid();
+  });
+
+  document.getElementById('btnReset').addEventListener('click', () => {
+    if (!confirm('全ての番号を「なし」に戻しますか？')) return;
+    state.slots = {};
+    save();
+    renderGrid();
+  });
+
+  renderGrid();
+</script>
+</body>
+</html>
