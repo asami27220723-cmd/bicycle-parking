@@ -215,7 +215,7 @@
     document.getElementById('countOccupied').textContent = occupied;
     document.getElementById('countEmpty').textContent = state.max - occupied;
     if ('setAppBadge' in navigator) {
-      if (occupied > 0) navigator.setAppBadge(occupied);
+      if (occupied > 0) navigator.setAppBadge(Number(Object.keys(state.slots).find(k => state.slots[k])));
       else navigator.clearAppBadge();
     }
     const nums = [];
