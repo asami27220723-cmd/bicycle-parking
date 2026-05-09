@@ -218,7 +218,9 @@
       if (occupied > 0) navigator.setAppBadge(occupied);
       else navigator.clearAppBadge();
     }
-    document.title = occupied > 0 ? `🚲 自転車置場（${occupied}台使用中）` : '🚲 自転車置場管理';
+    const nums = [];
+    for (let i = 1; i <= state.max; i++) { if (state.slots[i]) nums.push(i); }
+    document.title = nums.length > 0 ? `🚲 [${nums.join(',')}]` : '🚲 自転車置場管理';
     updateNotificationBadge(occupied);
   }
 
