@@ -178,7 +178,7 @@
 <div class="controls">
   <label>
     番号の最大数：
-    <input type="number" id="maxInput" min="1" max="999" value="30">
+    <input type="number" id="maxInput" min="1" max="999" value="36">
   </label>
   <button class="btn-apply" id="btnApply">適用</button>
   <button class="btn-reset" id="btnReset">全てなし（リセット）</button>
@@ -200,7 +200,7 @@
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) return JSON.parse(raw);
     } catch {}
-    return { max: 30, slots: {} };
+    return { max: 36, slots: {} };
   }
 
   function save() {
